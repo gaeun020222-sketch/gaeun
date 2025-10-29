@@ -36,14 +36,14 @@ import numpy as np
 
 st.write("Got lots of data? Great! Streamlit can show [dataframs] with hundred thousands of rows, images, sparklines-and even supports editing!")
 
-num_rows = st.slider("Number of rows", 1, 1000, 500)
+num_rows = st.slider("Number of rows", 1, 10000, 500)
 np. random.seed(42)
 data = []
-for i in tange(num_rows):
+for i in range(num_rows):
     data.append(
         {
             "Preview": f"http://picsum.photos/400/200?lock={i}",
-            "Views": np.random.randint(0, 100),
+            "Views": np.random.randint(0, 1000),
             "Active": np.random.choice([True, False]),
             "Category": np.ramdom.choice(["LLM", "Data", "Tool"])
             "Progress": np.random.randiant(1, 100),
