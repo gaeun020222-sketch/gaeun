@@ -1,4 +1,3 @@
-#10/22
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,7 +8,6 @@ st.write(pd.DataFrame({
     'second column':[10, 20, 30, 40]
 }))
 
-#10/29
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -29,3 +27,4 @@ if rolling_average:
 tab1, tab2 = st.tabs(["Chart", "Dataframe"])
 tab1.line_chart(data, height=250)
 tab2.dataframe(data, height=250, use_container_width=True)
+
