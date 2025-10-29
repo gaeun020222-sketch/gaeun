@@ -45,7 +45,7 @@ for i in range(num_rows):
             "Preview": f"http://picsum.photos/400/200?lock={i}",
             "Views": np.random.randint(0, 1000),
             "Active": np.random.choice([True, False]),
-            "Category": np.random.choice(["LLM", "Data", "Tool"])
+            "Category": np.random.choice(["LLM", "Data", "Tool"]),
             "Progress": np.random.randint(1, 100),
         }
     )
@@ -60,4 +60,5 @@ if st.toggle("Enable editing"):
     edited_data = st.data_editor(data, column_config=config, use_container_width=True)
 else:
     st.dataframe(data, column_config=config, use_container_width=True)
+
 
