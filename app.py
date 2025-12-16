@@ -3,6 +3,7 @@ from streamlit_agraph import agraph, Node, Edge, Config
 import time
 
 # 1. 페이지 기본 설정
+# 목적: 웹페이지의 기본 레이아웃을 설정합니다.
 st.set_page_config(page_title="19세기 후반 정치 마당", layout="wide")
 
 # --------------------------------------------------------------------------
@@ -42,7 +43,7 @@ if 'show_next' not in st.session_state:
 
 # 탭 2용 변수 (채팅)
 if 'chat_role' not in st.session_state:
-    st.session_state['chat_role'] = None
+    st.session_state['chat_role'] = None # None이면 역할 선택 화면, 값이 있으면 채팅 화면
 if 'chat_stage' not in st.session_state:
     st.session_state['chat_stage'] = 0
 if 'chat_history' not in st.session_state:
@@ -143,7 +144,7 @@ def render_tab2():
     st.markdown("당신은 이제 역사 속 인물이 되어, 상대방과 조선의 미래를 논하게 됩니다.")
     st.divider()
 
-    # 1. 역할 선택 (아직 역할을 선택하지 않았을 때)
+    # 1. 역할 선택 화면 (chat_role이 None일 때 보임 -> 초기화면)
     if st.session_state['chat_role'] is None:
         st.subheader("🎭 당신은 누구입니까?")
         col1, col2 = st.columns(2)
@@ -152,7 +153,7 @@ def render_tab2():
             st.image(IMAGE_URLS["김옥균"], width=150)
             if st.button("나는 '김옥균' (급진개화파)"):
                 st.session_state['chat_role'] = 'Kim_Ok'
-                # 역할 설정 후 첫 대사 자동 생성
+                # 첫 대사 (김홍집이 말함)
                 start_msg = "안녕, 김옥균! 나는 김홍집이야."
                 st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                 st.session_state['chat_stage'] = 1
@@ -162,15 +163,14 @@ def render_tab2():
             st.image(IMAGE_URLS["온건개화파"], width=150)
             if st.button("나는 '김홍집' (온건개화파)"):
                 st.session_state['chat_role'] = 'Kim_Hong'
-                # 역할 설정 후 첫 대사 자동 생성
+                # 첫 대사 (김옥균이 말함)
                 start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
                 st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                 st.session_state['chat_stage'] = 1
                 st.rerun()
 
-    # 2. 채팅 인터페이스
+    # 2. 채팅 인터페이스 (역할이 정해졌을 때 보임)
     else:
-        # 내 역할과 상대방 설정
         my_role = st.session_state['chat_role']
         opponent_img = IMAGE_URLS["온건개화파"] if my_role == 'Kim_Ok' else IMAGE_URLS["김옥균"]
         my_name = "김옥균" if my_role == 'Kim_Ok' else "김홍집"
@@ -189,12 +189,10 @@ def render_tab2():
 
         # 사용자 입력
         if prompt := st.chat_input("답변을 입력하세요..."):
-            # 내 메시지 추가
             st.session_state['chat_history'].append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.write(prompt)
 
-            # 챗봇 로직
             stage = st.session_state['chat_stage']
             response = ""
             
@@ -247,15 +245,14 @@ def render_tab2():
                 
             st.session_state['chat_history'].append({"role": "assistant", "content": response})
 
-            # 미션 완료 버튼 (수정됨: 다시 채팅하기 & 다음 미션 도전하기)
+            # [수정됨] 미션 완료 버튼 & 로직
             if st.session_state['chat_stage'] == 4:
                 st.success("🎉 대화 미션 완료!")
                 col_btn1, col_btn2 = st.columns(2)
                 
-                # [수정된 버튼] 다시 채팅하기 (역할 선택 화면으로 돌아가기)
                 with col_btn1:
-                    if st.button("🔄 다시 채팅하기 (처음으로)"):
-                        # 모든 채팅 관련 상태 초기화 -> 역할 선택 화면이 다시 렌더링됨
+                    # 목적: chat_role을 None으로 만들어 초기 '역할 선택 화면'으로 되돌아감
+                    if st.button("🔄 다시 채팅하기 (처음으로 돌아가기)"):
                         st.session_state['chat_role'] = None 
                         st.session_state['chat_history'] = []
                         st.session_state['chat_stage'] = 0
