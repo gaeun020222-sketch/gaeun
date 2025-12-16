@@ -47,6 +47,8 @@ if 'chat_stage' not in st.session_state:
     st.session_state['chat_stage'] = 0
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
+if 'start_msg_streamed' not in st.session_state: # 첫 인사말 스트리밍 여부
+    st.session_state['start_msg_streamed'] = False
 
 # --------------------------------------------------------------------------
 # [페이지 1] 탭 1: 정치 마당 (퀴즈 + 시각화)
@@ -143,7 +145,7 @@ def render_tab2():
     st.markdown("당신은 이제 역사 속 인물이 되어, 상대방과 조선의 미래를 논하게 됩니다.")
     st.divider()
 
-    # 1. 역할 선택 화면 (chat_role이 None일 때 보임 -> 초기화면)
+    # 1. 역할 선택 화면
     if st.session_state['chat_role'] is None:
         st.subheader("🎭 당신은 누구입니까?")
         col1, col2 = st.columns(2)
@@ -152,21 +154,19 @@ def render_tab2():
             st.image(IMAGE_URLS["김옥균"], width=150)
             if st.button("나는 '김옥균' (급진개화파)"):
                 st.session_state['chat_role'] = 'Kim_Ok'
-                start_msg = "안녕, 김옥균! 나는 김홍집이야."
-                st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                 st.session_state['chat_stage'] = 1
+                st.session_state['start_msg_streamed'] = False # 첫 인사말 스트리밍 필요 표시
                 st.rerun()
                 
         with col2:
             st.image(IMAGE_URLS["온건개화파"], width=150)
             if st.button("나는 '김홍집' (온건개화파)"):
                 st.session_state['chat_role'] = 'Kim_Hong'
-                start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
-                st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                 st.session_state['chat_stage'] = 1
+                st.session_state['start_msg_streamed'] = False
                 st.rerun()
 
-    # 2. 채팅 인터페이스 (역할이 정해졌을 때 보임)
+    # 2. 채팅 인터페이스
     else:
         my_role = st.session_state['chat_role']
         opponent_img = IMAGE_URLS["온건개화파"] if my_role == 'Kim_Ok' else IMAGE_URLS["김옥균"]
@@ -175,14 +175,38 @@ def render_tab2():
         
         st.info(f"🎭 당신의 역할: **{my_name}** | 대화 상대: **{opponent_name}**")
 
-        for msg in st.session_state['chat_history']:
-            if msg['role'] == 'assistant':
-                with st.chat_message(msg['role'], avatar=opponent_img):
-                    st.write(msg['content'])
+        # 첫 인사말 설정 (아직 기록에 없다면)
+        if not st.session_state['chat_history']:
+            if my_role == 'Kim_Ok':
+                start_msg = "안녕, 김옥균! 나는 김홍집이야."
             else:
-                with st.chat_message(msg['role']): 
-                    st.write(msg['content'])
+                start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
+            
+            # 첫 인사말 타이핑 효과 출력
+            if not st.session_state['start_msg_streamed']:
+                with st.chat_message("assistant", avatar=opponent_img):
+                    message_placeholder = st.empty()
+                    full_response = ""
+                    for chunk in stream_data(start_msg):
+                        full_response += chunk
+                        message_placeholder.markdown(full_response + "▌")
+                    message_placeholder.markdown(full_response)
+                # 스트리밍 완료 후 기록에 추가 및 플래그 업데이트
+                st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
+                st.session_state['start_msg_streamed'] = True
+            
+        # 기존 채팅 기록 표시
+        # 첫 인사말이 이미 스트리밍 되었다면, 기록된 내용을 그대로 표시
+        if st.session_state['start_msg_streamed']:
+            for msg in st.session_state['chat_history']:
+                if msg['role'] == 'assistant':
+                    with st.chat_message(msg['role'], avatar=opponent_img):
+                        st.write(msg['content'])
+                else:
+                    with st.chat_message(msg['role']): 
+                        st.write(msg['content'])
 
+        # 사용자 입력
         if prompt := st.chat_input("답변을 입력하세요..."):
             st.session_state['chat_history'].append({"role": "user", "content": prompt})
             with st.chat_message("user"):
@@ -236,25 +260,17 @@ def render_tab2():
                 message_placeholder.markdown(full_response)
                 
             st.session_state['chat_history'].append({"role": "assistant", "content": response})
+            st.rerun() # 답변 추가 후 화면 갱신
 
-            # [수정됨] 미션 완료 버튼 & 로직 (완벽 리셋 구현)
-            if st.session_state['chat_stage'] == 4:
-                st.success("🎉 대화 미션 완료!")
-                col_btn1, col_btn2 = st.columns(2)
-                
-                with col_btn1:
-                    # 목적: chat_role을 None으로 만들어 초기 '역할 선택 화면'으로 되돌아감
-                    if st.button("🔄 다시 채팅하기 (처음으로)"):
-                        # 모든 관련 상태를 초기화
-                        st.session_state['chat_role'] = None 
-                        st.session_state['chat_history'] = []
-                        st.session_state['chat_stage'] = 0
-                        st.rerun() # 화면 새로고침 -> render_tab2()의 if chat_role is None 부분 실행
-                        
-                with col_btn2:
-                    if st.button("다음 미션 도전하기 (갑신정변 3일) ➡️", type="primary"):
-                        st.session_state['current_page'] = 'tab3'
-                        st.rerun()
+        # 미션 완료 버튼 (수정됨: 다음 미션 도전하기만 남김)
+        if st.session_state['chat_stage'] == 4:
+            st.success("🎉 대화 미션 완료!")
+            col_btn1, col_btn2 = st.columns(2)
+            
+            with col_btn2:
+                if st.button("다음 미션 도전하기 (갑신정변 3일) ➡️", type="primary"):
+                    st.session_state['current_page'] = 'tab3'
+                    st.rerun()
 
 # --------------------------------------------------------------------------
 # [페이지 3] 탭 3: 갑신정변 3일 (준비 중)
