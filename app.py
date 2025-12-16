@@ -47,6 +47,8 @@ if 'chat_stage' not in st.session_state:
     st.session_state['chat_stage'] = 0
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
+if 'start_msg_streamed' not in st.session_state:
+    st.session_state['start_msg_streamed'] = False
 
 # --------------------------------------------------------------------------
 # [페이지 1] 탭 1: 정치 마당 (퀴즈 + 시각화)
@@ -83,7 +85,8 @@ def render_tab1():
                         st.info(f"해설: {current_q['expl']}")
                         st.session_state['show_next'] = True
                     else:
-                        st.error("❌ 오답입니다.")
+                        # [수정됨] 오답 시 안내 문구 추가
+                        st.error("❌ 오답입니다. 다시 한번 생각해서 옳은 답을 골라보세요!")
                         st.warning(f"힌트: {current_q['expl']}")
 
             if st.session_state['show_next']:
@@ -153,6 +156,7 @@ def render_tab2():
             if st.button("나는 '김옥균' (급진개화파)"):
                 st.session_state['chat_role'] = 'Kim_Ok'
                 st.session_state['chat_stage'] = 1
+                st.session_state['start_msg_streamed'] = False 
                 st.rerun()
                 
         with col2:
@@ -160,6 +164,7 @@ def render_tab2():
             if st.button("나는 '김홍집' (온건개화파)"):
                 st.session_state['chat_role'] = 'Kim_Hong'
                 st.session_state['chat_stage'] = 1
+                st.session_state['start_msg_streamed'] = False
                 st.rerun()
 
     # 2. 채팅 인터페이스
@@ -171,15 +176,13 @@ def render_tab2():
         
         st.info(f"🎭 당신의 역할: **{my_name}** | 대화 상대: **{opponent_name}**")
 
-        # [수정된 로직] 채팅 기록이 없으면(처음이면) 인사말 스트리밍, 있으면 기록 표시
+        # [첫 인사말 스트리밍 및 기록]
         if not st.session_state['chat_history']:
-            # 인사말 정의
             if my_role == 'Kim_Ok':
                 start_msg = "안녕, 김옥균! 나는 김홍집이야."
             else:
                 start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
             
-            # 스트리밍 출력
             with st.chat_message("assistant", avatar=opponent_img):
                 message_placeholder = st.empty()
                 full_response = ""
@@ -188,11 +191,10 @@ def render_tab2():
                     message_placeholder.markdown(full_response + "▌")
                 message_placeholder.markdown(full_response)
             
-            # 기록 저장
             st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
             
         else:
-            # 기록이 있으면 순서대로 표시 (중복 방지)
+            # 기록된 대화 표시
             for msg in st.session_state['chat_history']:
                 if msg['role'] == 'assistant':
                     with st.chat_message(msg['role'], avatar=opponent_img):
