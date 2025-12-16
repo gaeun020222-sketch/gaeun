@@ -24,7 +24,7 @@ IMAGE_URLS = {
 def stream_data(text):
     for word in text.split(" "):
         yield word + " "
-        time.sleep(0.05)
+        time.sleep(0.1) # 속도 조절: 0.05 -> 0.1 (조금 더 느리게)
 
 # --------------------------------------------------------------------------
 # [상태 관리] 세션 스테이트 초기화
@@ -245,13 +245,24 @@ def render_tab2():
                 st.success("🎉 대화 미션 완료!")
                 col_btn1, col_btn2 = st.columns(2)
                 
-                # [추가된 기능] 다른 인물로 다시 대화하기
+                # [추가된 기능] 역할 반대로 전환하여 다시 대화하기
                 with col_btn1:
-                    other_role = "김홍집" if my_role == 'Kim_Ok' else "김옥균"
-                    if st.button(f"🔄 {other_role}과 대화 나눠보기"):
-                        st.session_state['chat_role'] = None # 역할 초기화 (선택창으로 이동)
+                    # 현재 역할의 반대 역할 계산
+                    switch_role_name = "김홍집" if my_role == 'Kim_Ok' else "김옥균"
+                    switch_role_code = 'Kim_Hong' if my_role == 'Kim_Ok' else 'Kim_Ok'
+                    
+                    if st.button(f"🔄 {switch_role_name}이 되어 대화해보기"):
+                        st.session_state['chat_role'] = switch_role_code
                         st.session_state['chat_history'] = []
-                        st.session_state['chat_stage'] = 0
+                        st.session_state['chat_stage'] = 1
+                        
+                        # 새로운 역할에 맞는 첫 대사 설정
+                        if switch_role_code == 'Kim_Ok': # 내가 김옥균이 됨 -> 김홍집이 말 걸음
+                            start_msg = "안녕, 김옥균! 나는 김홍집이야."
+                        else: # 내가 김홍집이 됨 -> 김옥균이 말 걸음
+                            start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
+                            
+                        st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                         st.rerun()
                         
                 with col_btn2:
