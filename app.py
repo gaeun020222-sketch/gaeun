@@ -247,30 +247,18 @@ def render_tab2():
                 
             st.session_state['chat_history'].append({"role": "assistant", "content": response})
 
-            # 미션 완료 버튼
+            # 미션 완료 버튼 (수정됨: 다시 채팅하기 & 다음 미션 도전하기)
             if st.session_state['chat_stage'] == 4:
                 st.success("🎉 대화 미션 완료!")
                 col_btn1, col_btn2 = st.columns(2)
                 
-                # [역할 전환 버튼]
+                # [수정된 버튼] 다시 채팅하기 (역할 선택 화면으로 돌아가기)
                 with col_btn1:
-                    # 현재 역할의 반대 역할 계산
-                    switch_to_name = "김홍집" if my_role == 'Kim_Ok' else "김옥균"
-                    switch_to_code = 'Kim_Hong' if my_role == 'Kim_Ok' else 'Kim_Ok'
-                    
-                    if st.button(f"🔄 {switch_to_name}이 되어 대화해보기"):
-                        # 모든 상태를 초기화하고 새로운 역할로 재시작
-                        st.session_state['chat_role'] = switch_to_code
+                    if st.button("🔄 다시 채팅하기 (처음으로)"):
+                        # 모든 채팅 관련 상태 초기화 -> 역할 선택 화면이 다시 렌더링됨
+                        st.session_state['chat_role'] = None 
                         st.session_state['chat_history'] = []
-                        st.session_state['chat_stage'] = 1
-                        
-                        # 새로운 첫 대사 설정
-                        if switch_to_code == 'Kim_Ok': 
-                            start_msg = "안녕, 김옥균! 나는 김홍집이야."
-                        else: 
-                            start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
-                            
-                        st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
+                        st.session_state['chat_stage'] = 0
                         st.rerun()
                         
                 with col_btn2:
