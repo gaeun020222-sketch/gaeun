@@ -50,6 +50,15 @@ if 'chat_history' not in st.session_state:
 if 'start_msg_streamed' not in st.session_state:
     st.session_state['start_msg_streamed'] = False
 
+# 탭 3용 변수 (시뮬레이션 상태)
+if 'sim_metrics' not in st.session_state:
+    # 초기값: 성공확률 30%, 백성지지 20%, 우리힘 20% (낮게 시작)
+    st.session_state['sim_metrics'] = {'success': 30, 'public': 20, 'power': 20}
+if 'day1_choice' not in st.session_state:
+    st.session_state['day1_choice'] = None
+if 'day2_choice' not in st.session_state:
+    st.session_state['day2_choice'] = None
+
 # --------------------------------------------------------------------------
 # [페이지 1] 탭 1: 정치 마당 (퀴즈 + 시각화)
 # --------------------------------------------------------------------------
@@ -145,11 +154,9 @@ def render_tab2():
     st.markdown("당신은 이제 역사 속 인물이 되어, 상대방과 조선의 미래를 논하게 됩니다.")
     st.divider()
 
-    # 1. 역할 선택 화면
     if st.session_state['chat_role'] is None:
         st.subheader("🎭 당신은 누구입니까?")
         col1, col2 = st.columns(2)
-        
         with col1:
             st.image(IMAGE_URLS["김옥균"], width=150)
             if st.button("나는 '김옥균' (급진개화파)"):
@@ -157,7 +164,6 @@ def render_tab2():
                 st.session_state['chat_stage'] = 1
                 st.session_state['start_msg_streamed'] = False 
                 st.rerun()
-                
         with col2:
             st.image(IMAGE_URLS["온건개화파"], width=150)
             if st.button("나는 '김홍집' (온건개화파)"):
@@ -166,7 +172,6 @@ def render_tab2():
                 st.session_state['start_msg_streamed'] = False
                 st.rerun()
 
-    # 2. 채팅 인터페이스
     else:
         my_role = st.session_state['chat_role']
         opponent_img = IMAGE_URLS["온건개화파"] if my_role == 'Kim_Ok' else IMAGE_URLS["김옥균"]
@@ -175,7 +180,6 @@ def render_tab2():
         
         st.info(f"🎭 당신의 역할: **{my_name}** | 대화 상대: **{opponent_name}**")
 
-        # [첫 인사말 스트리밍 및 기록]
         if not st.session_state['chat_history']:
             if my_role == 'Kim_Ok':
                 start_msg = "안녕, 김옥균! 나는 김홍집이야."
@@ -201,7 +205,6 @@ def render_tab2():
                     with st.chat_message(msg['role']): 
                         st.write(msg['content'])
 
-        # 사용자 입력
         if prompt := st.chat_input("답변을 입력하세요..."):
             st.session_state['chat_history'].append({"role": "user", "content": prompt})
             with st.chat_message("user"):
@@ -214,21 +217,18 @@ def render_tab2():
                 if stage == 1:
                     response = f"우리는 둘 다 개화를 해야 한다고 주장하는 개화파이지만, 그 방법에 대해서는 생각이 다르지.\n\n조선이 개항을 하고 나서 청이 우리에게 지나치게 간섭하고 있잖아. {my_name}, 너는 이런 상황에서 **청과의 관계**를 어떻게 해야 한다고 생각해? \n\n(예: 관계를 끊어야 한다 / 관계를 유지해야 한다)"
                     st.session_state['chat_stage'] = 2
-                
                 elif stage == 2:
                     if any(word in prompt for word in ['끊', '청산', '자주', '배격', '몰아', '없애', '반대']):
                         response = "맞아. 나 김홍집은 청과의 관계를 유지해야 한다고 생각하지만, 너는 청나라와의 관계를 끊어야 한다고 주장했지.\n\n그렇다면 우리는 서양의 것을 어디까지 받아들일지에 대해서도 의견이 달라. 너의 의견은 어때? \n\n(예: 기술만 받아들여야 한다 / 사상과 제도까지 모두 바꿔야 한다)"
                         st.session_state['chat_stage'] = 3
                     else:
                         response = "음, 다시 한번 생각해보자. 너(김옥균)는 청나라가 간섭하는 걸 아주 싫어했어. 자주적인 나라가 되려면 관계를 어떻게 해야 할까? \n\n(힌트: '끊는다'는 말이 들어가게 답해봐)"
-                
                 elif stage == 3:
                     if any(word in prompt for word in ['사상', '제도', '법', '모두', '전부', '함께', '싹']):
                         response = "맞아. 나 김홍집은 '동도서기'라 하여 기술만 받아들이자고 했지만, 너는 사상과 제도까지 싹 바꿔야 한다고 주장했어 (문명개화론).\n\n나와 입장이 다른 개화파를 만나 이야기를 나눠볼 수 있어서 무척 즐거웠어. 다음에 또 만나!"
                         st.session_state['chat_stage'] = 4
                     else:
                         response = "정말 그렇게 생각해? 너는 일본의 메이지 유신을 본받아 기술뿐만 아니라 법과 제도까지 바꿔야 한다고 주장했었어. \n\n(힌트: '모두' 또는 '제도'가 들어가게 답해봐)"
-
             else:
                 if stage == 1:
                     response = f"우리는 뜻을 같이하는 동지였으나 지금은 갈라졌구려. {my_name} 대감, 청나라 군대가 우리 궁궐을 지키고 있는 이 상황이 마음에 드시오? 청과의 관계를 어찌해야 하겠소? \n\n(예: 청나라와 친하게 지내야 한다 / 관계를 끊어야 한다)"
@@ -257,18 +257,15 @@ def render_tab2():
             st.session_state['chat_history'].append({"role": "assistant", "content": response})
             st.rerun() 
 
-        # 미션 완료 버튼
         if st.session_state['chat_stage'] == 4:
             st.success("🎉 대화 미션 완료!")
             col_btn1, col_btn2 = st.columns(2)
-            
             with col_btn1:
                 if st.button("🔄 다시 채팅하기 (처음으로)"):
                     st.session_state['chat_role'] = None 
                     st.session_state['chat_history'] = []
                     st.session_state['chat_stage'] = 0
                     st.rerun()
-                        
             with col_btn2:
                 if st.button("다음 미션 도전하기 (갑신정변 3일) ➡️", type="primary"):
                     st.session_state['current_page'] = 'tab3'
@@ -280,81 +277,145 @@ def render_tab2():
 def render_tab3():
     st.title("⏳ 3단계: 갑신정변, 운명의 3일 시뮬레이터")
     
-    # 1. AI 윤리 경고문 (Hallucination 주의)
+    # 1. AI 윤리 경고문
     st.warning("""
-    ⚠️ **주의사항:** 이 시뮬레이션의 AI 답변과 생성된 이미지는 역사적 상상력이 포함되어 있습니다. 
-    실제 역사적 사실과는 차이가 있을 수 있으니 반드시 교과서 내용과 비교하며 비판적으로 읽어주세요!
+    ⚠️ **잠깐!** 이 활동은 실제 역사 내용을 바탕으로 **'만약 내가 김옥균이었다면?'** 하고 상상해보는 시뮬레이션입니다.
+    여러분의 선택에 따라 결과가 달라질 수 있지만, 실제 역사는 교과서 내용과 같다는 점을 꼭 기억해주세요!
     """)
     st.divider()
 
-    # 2. 타임라인 슬라이더
+    # 2. 상태 게이지 (Gamification)
+    # 학생들의 선택에 따라 이 수치가 변합니다.
+    st.subheader("📊 현재 나의 혁명 상황")
+    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1.metric("갑신정변 성공 확률", f"{st.session_state['sim_metrics']['success']}%")
+    col_m2.metric("백성들의 지지", f"{st.session_state['sim_metrics']['public']}%")
+    col_m3.metric("우리 스스로 지키는 힘", f"{st.session_state['sim_metrics']['power']}%")
+    
+    # 게이지 바 시각화
+    st.progress(st.session_state['sim_metrics']['success'] / 100)
+
+    st.divider()
+
+    # 3. 타임라인 슬라이더
     timeline = st.select_slider(
-        "⏳ 시간의 흐름을 따라가보세요 (슬라이더를 움직이세요)",
+        "⏳ 시간의 흐름을 따라가보세요",
         options=["1일차: 거사 (12.4)", "2일차: 개혁 (12.5)", "3일차: 삼일천하 (12.6)"]
     )
 
-    # 3. 날짜별 상황 시뮬레이션
+    # --- 날짜별 시뮬레이션 로직 ---
+    
+    # [1일차] 우정총국 거사
     if timeline == "1일차: 거사 (12.4)":
         st.error("🔥 **1일차: 우정총국 축하연의 불길**")
         col1, col2 = st.columns([1, 1.5])
         with col1:
-            # 김옥균 이미지 활용 (거사 주도)
-            st.image(IMAGE_URLS["김옥균"], caption="거사를 주도하는 김옥균")
+            st.image(IMAGE_URLS["김옥균"], caption="거사를 일으킨 김옥균")
         with col2:
             st.write("""
-            **상황:** 우정총국 개국 축하연이 열리던 밤, 갑자기 "불이야!" 하는 소리와 함께 매캐한 연기가 피어오릅니다.
-            급진개화파는 이 혼란을 틈타 민씨 정권의 핵심 인물들을 처단하고, 고종과 왕비를 경우궁으로 옮깁니다.
+            **[상황]** 우정총국 개국 축하연에서 불길이 솟아올랐습니다! 혼란을 틈타 김옥균과 급진개화파는 계획대로 민씨 정권을 몰아내고 고종 임금님을 안전한 곳으로 모셨습니다.
             
-            **당신의 선택:** 이 거사는 성공할 수 있을까요? 일본군이 약속대로 우리를 지켜줄 것이라 믿습니까?
+            이제 궁궐을 지켜야 합니다. **김옥균(당신)은 누구에게 궁궐 수비를 맡기겠습니까?**
             """)
-            st.info("💡 **Key Point:** 김옥균은 일본의 군사적 지원을 굳게 믿고 거사를 일으켰습니다.")
+            
+            # 선택지 버튼
+            col_b1, col_b2 = st.columns(2)
+            if col_b1.button("🅰️ 일본군에게 부탁한다 (실제 역사)"):
+                st.session_state['day1_choice'] = 'A'
+                # 실제 역사대로: 외세 의존도 높음 -> 자주 힘 감소, 백성 지지 감소
+                st.session_state['sim_metrics']['success'] = 30
+                st.session_state['sim_metrics']['public'] = 10
+                st.session_state['sim_metrics']['power'] = 10
+                st.rerun()
+                
+            if col_b2.button("🅱️ 우리 군대가 지킨다 (가상 선택)"):
+                st.session_state['day1_choice'] = 'B'
+                # 가상 역사: 자주적 태도 -> 힘 상승, 백성 지지 상승
+                st.session_state['sim_metrics']['success'] = 50
+                st.session_state['sim_metrics']['public'] = 40
+                st.session_state['sim_metrics']['power'] = 50
+                st.rerun()
 
+            # 선택 결과 피드백
+            if st.session_state['day1_choice'] == 'A':
+                st.warning("😓 **선택 결과:** 일본군이 궁궐을 지키게 되었습니다. 하지만 백성들은 '왜 남의 나라 군대가 왕을 지키냐'며 수군거립니다. (백성들의 지지 하락)")
+            elif st.session_state['day1_choice'] == 'B':
+                st.success("🤩 **상상 결과:** 우리 군대가 당당히 왕을 지킵니다! 백성들도 '드디어 우리 힘으로!'라며 기뻐합니다. (성공 확률 상승)")
+
+    # [2일차] 개혁안 발표
     elif timeline == "2일차: 개혁 (12.5)":
-        st.success("📜 **2일차: 새로운 세상의 선포**")
+        st.success("📜 **2일차: 새로운 세상의 약속**")
         col1, col2 = st.columns([1, 1.5])
         with col1:
-            st.image(IMAGE_URLS["고종"], caption="개혁안을 보고받는 고종")
+            st.image(IMAGE_URLS["고종"], caption="개혁안을 발표하는 고종")
         with col2:
             st.write("""
-            **상황:** 새로운 내각이 구성되었습니다! 김옥균과 동료들은 고종 앞에서 **'14개조 개혁 정강'**을 발표합니다.
-            청나라와의 관계를 끊고, 백성의 평등한 권리 제정하며, 재정을 일원화하는 등 꿈에 그리던 근대 국가의 모습입니다.
+            **[상황]** 새로운 정부가 들어섰습니다. 김옥균은 고종 임금님의 허락을 받아 나라를 바꿀 **'14개조 개혁 정강'**을 발표하려 합니다.
             
-            **당신의 선택:** 백성들은 이 개혁안을 환영할까요? 아니면 너무 급진적이라며 불안해할까요?
+            가장 먼저 백성들에게 **어떤 약속**을 해야 할까요?
             """)
-            st.info("💡 **Key Point:** 개혁 내용은 훌륭했지만, 백성들에게 널리 알리고 지지를 얻는 과정이 부족했습니다.")
+            
+            col_b1, col_b2 = st.columns(2)
+            if col_b1.button("🅰️ 정치 제도만 바꾼다 (실제 역사)"):
+                st.session_state['day2_choice'] = 'A'
+                # 실제 역사: 토지 개혁 없음 -> 농민 실망
+                st.session_state['sim_metrics']['success'] = max(0, st.session_state['sim_metrics']['success'] - 10)
+                st.session_state['sim_metrics']['public'] = max(0, st.session_state['sim_metrics']['public'] - 10)
+                st.rerun()
+                
+            if col_b2.button("🅱️ 토지 문제를 해결해주겠다 (가상 선택)"):
+                st.session_state['day2_choice'] = 'B'
+                # 가상 역사: 농민들이 원하던 것 -> 지지율 급상승
+                st.session_state['sim_metrics']['success'] = min(100, st.session_state['sim_metrics']['success'] + 30)
+                st.session_state['sim_metrics']['public'] = min(100, st.session_state['sim_metrics']['public'] + 40)
+                st.rerun()
 
+            if st.session_state['day2_choice'] == 'A':
+                st.warning("😓 **선택 결과:** 신분제를 없앤다는 말은 좋았지만, 당장 먹고살기 힘든 농민들은 '땅 문제는 왜 말이 없냐'며 실망했습니다.")
+            elif st.session_state['day2_choice'] == 'B':
+                st.success("🤩 **상상 결과:** '토지를 나누어 준다'는 소식에 온 나라 백성들이 만세를 부르며 김옥균을 지지합니다!")
+
+    # [3일차] 운명의 날
     elif timeline == "3일차: 삼일천하 (12.6)":
-        st.warning("⚔️ **3일차: 무너진 꿈, 3일 천하**")
+        st.warning("⚔️ **3일차: 최후의 순간**")
         col1, col2 = st.columns([1, 1.5])
         with col1:
-            # 청나라 이미지 활용 (개입)
-            st.image(IMAGE_URLS["청나라"], caption="몰려오는 청나라 군대")
+            st.image(IMAGE_URLS["청나라"], caption="청나라 군대의 개입")
         with col2:
             st.write("""
-            **상황:** 청나라 군대 1,500명이 창덕궁으로 밀고 들어옵니다!
-            우리가 믿었던 일본군은 청나라 군대를 보자마자 변명과 함께 철수해버립니다.
-            수적 열세에 몰린 개화파는 결국 일본으로 망명길에 오릅니다.
+            **[상황]** 약 1,500명의 청나라 군대가 몰려왔습니다! 일본군은 불리해지자 슬금슬금 도망갈 준비를 합니다.
             
-            **결과:** 갑신정변은 3일 만에 실패로 끝났습니다.
+            과연 갑신정변의 운명은 어떻게 될까요? (위 게이지를 확인해보세요)
             """)
-            st.error("💡 **교훈:** 외세(일본)에 의존하고, 백성의 지지를 얻지 못한 개혁은 실패할 수밖에 없었습니다.")
+            
+            # 최종 결과 판정
+            final_score = st.session_state['sim_metrics']['success']
+            
+            if final_score >= 80:
+                st.balloons()
+                st.success(f"🎉 **기적 같은 성공!** (성공 확률 {final_score}%)")
+                st.write("백성들의 뜨거운 지지와 우리 군대의 힘으로 청나라 군대를 막아냈습니다! 자주적인 근대 국가가 탄생했습니다.")
+            elif final_score >= 50:
+                st.info(f"🤔 **절반의 성공?** (성공 확률 {final_score}%)")
+                st.write("백성들이 조금은 도와주었지만, 청나라 군대가 너무 강했습니다. 아쉽게 후퇴하지만 희망은 보았습니다.")
+            else:
+                st.error(f"😢 **역사대로 실패...** (성공 확률 {final_score}%)")
+                st.write("일본군은 도망가고, 백성들은 등을 돌렸습니다. 결국 3일 만에 실패로 끝나고 일본으로 망명하게 됩니다.")
 
-    # 4. 과정 중심 평가 (서술형)
+    # 4. 과정 중심 평가
     st.divider()
-    st.subheader("📝 역사적 상상력 평가")
-    st.write("갑신정변의 실패 원인을 생각하며, 만약 당신이 김옥균이었다면 어떻게 했을지 적어보세요.")
+    st.subheader("📝 나의 역사적 상상력 펼치기")
+    st.write("실제 역사 내용을 바탕으로, 내가 김옥균이었다면 어떻게 했을지 적어봅시다.")
     
-    user_thought = st.text_area("✍️ 내가 만약 김옥균이었다면? (예: 일본을 믿지 않고 백성들에게 먼저 알렸을 것이다.)")
+    user_thought = st.text_area("✍️ (예: 나는 일본군을 믿지 않고 백성들에게 토지를 나누어 주어 우리 편으로 만들었을 것이다.)")
     
-    if st.button("결과 전송하기 (제출)"):
+    if st.button("결과 전송하기 (선생님께 제출)"):
         if len(user_thought) > 10:
-            st.balloons() # 축하 효과
-            st.success("✅ 제출이 완료되었습니다! 당신의 훌륭한 역사적 상상력이 선생님께 전달되었습니다.")
-            st.write(f"**나의 생각:** {user_thought}")
+            st.success("✅ 제출 완료! 여러분의 멋진 상상력이 역사 수업을 더 풍성하게 만들었어요.")
+            st.write(f"**제출된 내용:** {user_thought}")
         else:
-            st.warning("내용이 너무 짧습니다. 조금 더 구체적으로 적어주세요!")
+            st.warning("내용이 너무 짧아요. 조금 더 자세히 적어볼까요?")
     
-    # 처음으로 돌아가기
     st.divider()
     if st.button("⬅️ 처음(1단계)으로 돌아가기"):
         st.session_state['current_page'] = 'tab1'
