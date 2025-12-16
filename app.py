@@ -203,10 +203,6 @@ with col_viz:
         st.info("👈 왼쪽의 퀴즈를 모두 풀면 권력 지도가 나타납니다.")
         st.image("https://cdn-icons-png.flaticon.com/512/610/610333.png", width=100, caption="잠겨있음")
     # ... (탭 1 코드는 생략, 위쪽에 이어짐) ...
-
-
-# ... (탭 1 코드는 생략, 위쪽에 이어짐) ...
-
 # --------------------------------------------------------------------------
 # [탭 2 구현] 상대 개화파와 채팅하기 (Historical Persona Chatbot)
 # 목적: 학생들이 딱딱한 텍스트 대신, 역사적 인물(페르소나)과 상호작용하며
@@ -222,7 +218,7 @@ with tab2:
     st.divider()
 
     # 화면 레이아웃 분할 (좌측: 인물 선택 / 우측: 대화창)
-    # 인물 정보를 선택하는 영역과 대화하는 영역을 구분하여 집중도를 높임
+    # 목적: 인물 정보를 선택하는 영역과 대화하는 영역을 구분하여 집중도를 높임
     col_left, col_right = st.columns([1, 2])
     
     # [좌측 영역] 대화 상대(페르소나) 선택
@@ -230,6 +226,7 @@ with tab2:
         st.subheader("🗣️ 대화 상대 선택")
         
         # 라디오 버튼을 통해 학생이 대화하고 싶은 역사적 인물을 선택하게 함
+        # 주의: 여기 적힌 이름("김홍집 (온건개화파)")이 아래 questions 딕셔너리의 키와 정확히 일치해야 합니다.
         speaker = st.radio(
             "누구와 이야기를 나누시겠습니까?",
             ("김홍집 (온건개화파)", "김옥균 (급진개화파)")
@@ -269,7 +266,7 @@ with tab2:
             st.session_state["messages"] = []
 
         # (1) 대화 기록 출력
-        # 저장된 대화 내용을 화면에 표시하여 대화의 흐름을 유지함
+        # 결과: 저장된 대화 내용을 화면에 표시하여 대화의 흐름을 유지함
         for message in st.session_state["messages"]:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
@@ -281,6 +278,7 @@ with tab2:
         st.write("**어떤 것이 궁금한가요? (버튼을 눌러 질문하세요)**")
         
         # 인물별 맞춤형 질문 리스트 데이터
+        # 주의: 이 딕셔너리의 키(Key)가 위에서 설정한 speaker 변수의 값과 정확히 같아야 KeyError가 안 납니다.
         questions = {
             "김홍집 (온건개화파)": [
                 "청나라와의 관계는 어떻게 해야 합니까?",
@@ -296,6 +294,8 @@ with tab2:
         
         # 질문 버튼을 가로로 배치하여 선택 용이성 높임
         btn_cols = st.columns(3)
+        
+        # 현재 선택된 인물(speaker)에 맞는 질문들을 가져와서 버튼으로 만듦
         for idx, q in enumerate(questions[speaker]):
             # 버튼을 누르면 해당 질문이 채팅창에 입력되고 AI 답변이 생성됨
             if btn_cols[idx].button(f"Q{idx+1}. {q}"):
