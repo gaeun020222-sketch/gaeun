@@ -24,7 +24,7 @@ IMAGE_URLS = {
 def stream_data(text):
     for word in text.split(" "):
         yield word + " "
-        time.sleep(0.1) # 속도 조절: 0.05 -> 0.1 (조금 더 느리게)
+        time.sleep(0.1) # 속도 조절 (0.1초)
 
 # --------------------------------------------------------------------------
 # [상태 관리] 세션 스테이트 초기화
@@ -143,7 +143,7 @@ def render_tab2():
     st.markdown("당신은 이제 역사 속 인물이 되어, 상대방과 조선의 미래를 논하게 됩니다.")
     st.divider()
 
-    # 1. 역할 선택
+    # 1. 역할 선택 (아직 역할을 선택하지 않았을 때)
     if st.session_state['chat_role'] is None:
         st.subheader("🎭 당신은 누구입니까?")
         col1, col2 = st.columns(2)
@@ -152,6 +152,7 @@ def render_tab2():
             st.image(IMAGE_URLS["김옥균"], width=150)
             if st.button("나는 '김옥균' (급진개화파)"):
                 st.session_state['chat_role'] = 'Kim_Ok'
+                # 역할 설정 후 첫 대사 자동 생성
                 start_msg = "안녕, 김옥균! 나는 김홍집이야."
                 st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                 st.session_state['chat_stage'] = 1
@@ -161,6 +162,7 @@ def render_tab2():
             st.image(IMAGE_URLS["온건개화파"], width=150)
             if st.button("나는 '김홍집' (온건개화파)"):
                 st.session_state['chat_role'] = 'Kim_Hong'
+                # 역할 설정 후 첫 대사 자동 생성
                 start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
                 st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
                 st.session_state['chat_stage'] = 1
@@ -168,6 +170,7 @@ def render_tab2():
 
     # 2. 채팅 인터페이스
     else:
+        # 내 역할과 상대방 설정
         my_role = st.session_state['chat_role']
         opponent_img = IMAGE_URLS["온건개화파"] if my_role == 'Kim_Ok' else IMAGE_URLS["김옥균"]
         my_name = "김옥균" if my_role == 'Kim_Ok' else "김홍집"
@@ -175,6 +178,7 @@ def render_tab2():
         
         st.info(f"🎭 당신의 역할: **{my_name}** | 대화 상대: **{opponent_name}**")
 
+        # 채팅 기록 표시
         for msg in st.session_state['chat_history']:
             if msg['role'] == 'assistant':
                 with st.chat_message(msg['role'], avatar=opponent_img):
@@ -183,11 +187,14 @@ def render_tab2():
                 with st.chat_message(msg['role']): 
                     st.write(msg['content'])
 
+        # 사용자 입력
         if prompt := st.chat_input("답변을 입력하세요..."):
+            # 내 메시지 추가
             st.session_state['chat_history'].append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.write(prompt)
 
+            # 챗봇 로직
             stage = st.session_state['chat_stage']
             response = ""
             
@@ -245,21 +252,22 @@ def render_tab2():
                 st.success("🎉 대화 미션 완료!")
                 col_btn1, col_btn2 = st.columns(2)
                 
-                # [추가된 기능] 역할 반대로 전환하여 다시 대화하기
+                # [역할 전환 버튼]
                 with col_btn1:
                     # 현재 역할의 반대 역할 계산
-                    switch_role_name = "김홍집" if my_role == 'Kim_Ok' else "김옥균"
-                    switch_role_code = 'Kim_Hong' if my_role == 'Kim_Ok' else 'Kim_Ok'
+                    switch_to_name = "김홍집" if my_role == 'Kim_Ok' else "김옥균"
+                    switch_to_code = 'Kim_Hong' if my_role == 'Kim_Ok' else 'Kim_Ok'
                     
-                    if st.button(f"🔄 {switch_role_name}이 되어 대화해보기"):
-                        st.session_state['chat_role'] = switch_role_code
+                    if st.button(f"🔄 {switch_to_name}이 되어 대화해보기"):
+                        # 모든 상태를 초기화하고 새로운 역할로 재시작
+                        st.session_state['chat_role'] = switch_to_code
                         st.session_state['chat_history'] = []
                         st.session_state['chat_stage'] = 1
                         
-                        # 새로운 역할에 맞는 첫 대사 설정
-                        if switch_role_code == 'Kim_Ok': # 내가 김옥균이 됨 -> 김홍집이 말 걸음
+                        # 새로운 첫 대사 설정
+                        if switch_to_code == 'Kim_Ok': 
                             start_msg = "안녕, 김옥균! 나는 김홍집이야."
-                        else: # 내가 김홍집이 됨 -> 김옥균이 말 걸음
+                        else: 
                             start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
                             
                         st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
