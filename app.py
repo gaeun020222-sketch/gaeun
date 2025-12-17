@@ -15,25 +15,43 @@ IMAGE_URLS = {
     "고종": "https://i.ibb.co/fYpjpVJ2/image.png",
     "김옥균": "https://i.ibb.co/1jFg9C6/image.png",
     "온건개화파": "https://i.ibb.co/BKGYrkf3/image.png", # 김홍집
-    "흥선대원군": "https://i.ibb.co/PsJwdCrK/image.png"
+    "흥선대원군": "https://i.ibb.co/PsJwdCrK/image.png",
+    # 탭 3 시뮬레이션 메인 이미지
+    "Day1": "https://i.ibb.co/zW92HRsr/DAY1.png",
+    "Day2": "https://i.ibb.co/Ld3J6X8V/DAY2.png",
+    "Day3": "https://i.ibb.co/fdFSJbqD/DAY3.png"
+}
+
+# 탭 3 추가 이미지 (더보기용)
+EXTRA_IMAGES = {
+    "Day1": [
+        "https://i.ibb.co/WNJG9M5B/day1p.png",   # 1일차 사진
+        "https://i.ibb.co/BHjTBBbX/dat1map.png"  # 1일차 지도
+    ],
+    "Day2": [
+        "https://i.ibb.co/99Rb3bnd/day2p.png",    # 2일차 사진
+        "https://i.ibb.co/BVBXtngJ/day2map.png"   # 2일차 지도
+    ],
+    "Day3": [
+        "https://i.ibb.co/WQ9SmVK/day3p.png",     # 3일차 사진
+        "https://i.ibb.co/6RvMx16x/day3map.png"   # 3일차 지도
+    ]
 }
 
 # --------------------------------------------------------------------------
-# [함수] 텍스트 스트리밍 효과 (타이핑 효과)
+# [함수] 텍스트 스트리밍 효과
 # --------------------------------------------------------------------------
 def stream_data(text):
-    for word in text.split(" "):
-        yield word + " "
-        time.sleep(0.1)
+    for char in text:
+        yield char
+        time.sleep(0.03)
 
 # --------------------------------------------------------------------------
 # [상태 관리] 세션 스테이트 초기화
 # --------------------------------------------------------------------------
-# 시작 페이지를 'intro'로 설정
 if 'current_page' not in st.session_state:
     st.session_state['current_page'] = 'intro'
 
-# 학생 이름 저장
 if 'student_name' not in st.session_state:
     st.session_state['student_name'] = ""
 
@@ -45,33 +63,39 @@ if 'quiz_finished' not in st.session_state:
 if 'show_next' not in st.session_state:
     st.session_state['show_next'] = False
 
-# 탭 2용 변수 (채팅)
+# 탭 2용 변수
 if 'chat_role' not in st.session_state:
     st.session_state['chat_role'] = None
 if 'chat_stage' not in st.session_state:
     st.session_state['chat_stage'] = 0
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
-if 'start_msg_streamed' not in st.session_state:
-    st.session_state['start_msg_streamed'] = False
 
-# 탭 3용 변수 (시뮬레이션)
+# 탭 3용 변수 (시뮬레이션 및 이미지 더보기 토글)
 if 'sim_metrics' not in st.session_state:
     st.session_state['sim_metrics'] = {'success': 30, 'public': 20, 'power': 20}
 if 'day1_choice' not in st.session_state:
     st.session_state['day1_choice'] = None
 if 'day2_choice' not in st.session_state:
     st.session_state['day2_choice'] = None
+if 'day3_choice' not in st.session_state:
+    st.session_state['day3_choice'] = None
+
+# 이미지 더보기 상태 관리
+if 'show_more_day1' not in st.session_state:
+    st.session_state['show_more_day1'] = False
+if 'show_more_day2' not in st.session_state:
+    st.session_state['show_more_day2'] = False
+if 'show_more_day3' not in st.session_state:
+    st.session_state['show_more_day3'] = False
 
 # --------------------------------------------------------------------------
-# [페이지 0] 인트로: 학습 주제 및 이름 입력
+# [페이지 0] 인트로
 # --------------------------------------------------------------------------
 def render_intro():
     st.title("🏫 AI와 함께하는 역사 탐구 수업")
     st.markdown("---")
-    
     col1, col2 = st.columns([1, 1])
-    
     with col1:
         st.subheader("📜 오늘의 학습 주제")
         st.info("**갑신정변, 3일간의 기록: 성공과 실패의 갈림길**")
@@ -80,13 +104,10 @@ def render_intro():
         * **2단계:** 역사 속 인물(김옥균, 김홍집)과 대화하며 입장 이해하기
         * **3단계:** 갑신정변 3일간의 과정을 시뮬레이션하며 실패 원인 분석하기
         """)
-        
     with col2:
         st.subheader("👋 환영합니다!")
         st.write("수업을 시작하기 위해 이름을 입력해주세요.")
-        
         name_input = st.text_input("이름", placeholder="예: 김역사")
-        
         if st.button("수업 시작하기 🚀", type="primary"):
             if name_input.strip() != "":
                 st.session_state['student_name'] = name_input
@@ -96,16 +117,13 @@ def render_intro():
                 st.warning("이름을 입력해야 시작할 수 있어요!")
 
 # --------------------------------------------------------------------------
-# [페이지 1] 탭 1: 정치 마당 (퀴즈 + 시각화)
+# [페이지 1] 탭 1: 정치 마당
 # --------------------------------------------------------------------------
 def render_tab1():
     st.title(f"🏛️ 1단계: 19세기 후반 권력 지도 ({st.session_state['student_name']} 학생)")
     st.markdown("퀴즈를 풀며 당시 복잡했던 나라 안팎의 권력 관계를 파헤쳐 봅시다.")
     st.divider()
-
     col_quiz, col_viz = st.columns([1, 1.5])
-
-    # [좌측] 퀴즈 영역
     with col_quiz:
         quiz_data = {
             1: {"q": "Q1. 고종의 아버지 '흥선대원군'과 부인 '명성황후'의 사이는?", "options": ["① 우리는 한 가족!", "② 서로 권력을 잡으려고 다투는 라이벌!"], "correct": "② 서로 권력을 잡으려고 다투는 라이벌!", "expl": "흥선대원군은 쫓겨났지만 여전히 힘이 세고, 명성황후는 시아버지와 대립했어요."},
@@ -114,16 +132,13 @@ def render_tab1():
             4: {"q": "Q4. 청나라를 밀어내고 조선을 차지하려던 나라는?", "options": ["① 미국", "② 일본"], "correct": "② 일본", "expl": "일본은 청나라와 계속 눈치 싸움을 하고 있었어요."},
             5: {"q": "Q5. 일본이 김옥균에게 건넨 은밀한 제안은?", "options": ["① 사이좋게 지내자.", "② 청나라를 몰아내면 군대와 돈을 빌려줄게."], "correct": "② 청나라를 몰아내면 군대와 돈을 빌려줄게.", "expl": "일본은 김옥균을 이용해 청나라 세력을 몰아내려는 속셈이 있었죠."}
         }
-
         if not st.session_state['quiz_finished']:
             st.subheader(f"문제 {st.session_state['step']} / 5")
             current_q = quiz_data[st.session_state['step']]
-            
             with st.form(key=f"quiz_form_{st.session_state['step']}"):
                 st.markdown(f"**{current_q['q']}**")
                 choice = st.radio("정답 선택:", current_q["options"], index=None)
                 submit_btn = st.form_submit_button("정답 확인")
-                
                 if submit_btn:
                     if choice == current_q["correct"]:
                         st.success("✅ 정답입니다!")
@@ -132,7 +147,6 @@ def render_tab1():
                     else:
                         st.error("❌ 오답입니다. 다시 한번 생각해서 옳은 답을 골라보세요!")
                         st.warning(f"힌트: {current_q['expl']}")
-
             if st.session_state['show_next']:
                 if st.session_state['step'] < 5:
                     if st.button("다음 문제 ➡️"):
@@ -146,7 +160,6 @@ def render_tab1():
         else:
             st.success("1단계 미션 성공! 오른쪽 권력 지도를 확인하세요.")
 
-    # [우측] 시각화 영역
     with col_viz:
         st.subheader("📊 권력 관계 시각화")
         if st.session_state['quiz_finished']:
@@ -169,9 +182,7 @@ def render_tab1():
             ]
             config = Config(width=700, height=600, directed=True, physics=True, nodeHighlightBehavior=True, highlightColor="#F7A7A6")
             agraph(nodes=nodes, edges=edges, config=config)
-            
             st.info("💡 **해석:** 청나라(큰 점)의 간섭이 심하고, 김옥균(작은 점)은 이에 맞서기 위해 일본과 손을 잡은 위태로운 상황입니다.")
-            
             st.divider()
             col_next_btn = st.columns([4, 1])
             with col_next_btn[1]:
@@ -183,7 +194,7 @@ def render_tab1():
             st.image("https://cdn-icons-png.flaticon.com/512/610/610333.png", width=100)
 
 # --------------------------------------------------------------------------
-# [페이지 2] 탭 2: 개화파와 대화 (롤플레잉 챗봇)
+# [페이지 2] 탭 2: 개화파와 대화
 # --------------------------------------------------------------------------
 def render_tab2():
     st.title("💬 2단계: 역사 속으로 - 개화파와의 대화")
@@ -198,16 +209,15 @@ def render_tab2():
             if st.button("나는 '김옥균' (급진개화파)"):
                 st.session_state['chat_role'] = 'Kim_Ok'
                 st.session_state['chat_stage'] = 1
-                st.session_state['start_msg_streamed'] = False 
+                st.session_state['chat_history'] = [] 
                 st.rerun()
         with col2:
             st.image(IMAGE_URLS["온건개화파"], width=150)
             if st.button("나는 '김홍집' (온건개화파)"):
                 st.session_state['chat_role'] = 'Kim_Hong'
                 st.session_state['chat_stage'] = 1
-                st.session_state['start_msg_streamed'] = False
+                st.session_state['chat_history'] = []
                 st.rerun()
-
     else:
         my_role = st.session_state['chat_role']
         opponent_img = IMAGE_URLS["온건개화파"] if my_role == 'Kim_Ok' else IMAGE_URLS["김옥균"]
@@ -221,7 +231,6 @@ def render_tab2():
                 start_msg = "안녕, 김옥균! 나는 김홍집이야."
             else:
                 start_msg = "반갑소, 김홍집 대감. 나는 김옥균이오."
-            
             with st.chat_message("assistant", avatar=opponent_img):
                 message_placeholder = st.empty()
                 full_response = ""
@@ -229,9 +238,7 @@ def render_tab2():
                     full_response += chunk
                     message_placeholder.markdown(full_response + "▌")
                 message_placeholder.markdown(full_response)
-            
             st.session_state['chat_history'].append({"role": "assistant", "content": start_msg})
-            
         else:
             for msg in st.session_state['chat_history']:
                 if msg['role'] == 'assistant':
@@ -289,7 +296,6 @@ def render_tab2():
                     full_response += chunk
                     message_placeholder.markdown(full_response + "▌")
                 message_placeholder.markdown(full_response)
-                
             st.session_state['chat_history'].append({"role": "assistant", "content": response})
             st.rerun() 
 
@@ -308,7 +314,7 @@ def render_tab2():
                     st.rerun()
 
 # --------------------------------------------------------------------------
-# [페이지 3] 탭 3: 갑신정변 3일 (시뮬레이터)
+# [페이지 3] 탭 3: 시뮬레이터 (수정됨: 이미지 더보기 추가)
 # --------------------------------------------------------------------------
 def render_tab3():
     st.title("⏳ 3단계: 갑신정변, 운명의 3일 시뮬레이터")
@@ -319,115 +325,201 @@ def render_tab3():
     """)
     st.divider()
 
-    st.subheader("📊 현재 나의 혁명 상황")
-    col_m1, col_m2, col_m3 = st.columns(3)
-    col_m1.metric("갑신정변 성공 확률", f"{st.session_state['sim_metrics']['success']}%")
-    col_m2.metric("백성들의 지지", f"{st.session_state['sim_metrics']['public']}%")
-    col_m3.metric("우리 스스로 지키는 힘", f"{st.session_state['sim_metrics']['power']}%")
+    # 상태 게이지
+    col_hud, col_main = st.columns([1, 3]) 
     
-    st.progress(st.session_state['sim_metrics']['success'] / 100)
+    with col_hud:
+        st.subheader("📊 나의 혁명 상황판")
+        st.info("현재 상태를 확인하세요!")
+        
+        st.write("📈 **갑신정변 성공 확률**")
+        st.progress(st.session_state['sim_metrics']['success'] / 100)
+        st.write(f"현재: {st.session_state['sim_metrics']['success']}%")
+        st.markdown("---")
+        
+        st.write("👨‍👩‍👧‍👦 **백성들의 지지**")
+        st.progress(st.session_state['sim_metrics']['public'] / 100)
+        st.write(f"현재: {st.session_state['sim_metrics']['public']}%")
+        st.markdown("---")
+        
+        st.write("⚔️ **우리 스스로 지키는 힘**")
+        st.progress(st.session_state['sim_metrics']['power'] / 100)
+        st.write(f"현재: {st.session_state['sim_metrics']['power']}%")
 
-    st.divider()
+    with col_main:
+        timeline = st.select_slider(
+            "⏳ 시간의 흐름을 따라가보세요",
+            options=["1일차: 거사 (12.4)", "2일차: 개혁 (12.5)", "3일차: 삼일천하 (12.6)"]
+        )
 
-    timeline = st.select_slider(
-        "⏳ 시간의 흐름을 따라가보세요",
-        options=["1일차: 거사 (12.4)", "2일차: 개혁 (12.5)", "3일차: 삼일천하 (12.6)"]
-    )
-
-    if timeline == "1일차: 거사 (12.4)":
-        st.error("🔥 **1일차: 우정총국 축하연의 불길**")
-        col1, col2 = st.columns([1, 1.5])
-        with col1:
-            st.image(IMAGE_URLS["김옥균"], caption="거사를 일으킨 김옥균")
-        with col2:
-            st.write("""
-            **[상황]** 우정총국 개국 축하연에서 불길이 솟아올랐습니다! 혼란을 틈타 김옥균과 급진개화파는 계획대로 민씨 정권을 몰아내고 고종 임금님을 안전한 곳으로 모셨습니다.
-            
-            이제 궁궐을 지켜야 합니다. **김옥균(당신)은 누구에게 궁궐 수비를 맡기겠습니까?**
-            """)
-            
-            col_b1, col_b2 = st.columns(2)
-            if col_b1.button("🅰️ 일본군에게 부탁한다 (실제 역사)"):
-                st.session_state['day1_choice'] = 'A'
-                st.session_state['sim_metrics']['success'] = 30
-                st.session_state['sim_metrics']['public'] = 10
-                st.session_state['sim_metrics']['power'] = 10
-                st.rerun()
+        # --- 날짜별 시뮬레이션 로직 ---
+        
+        # [1일차]
+        if timeline == "1일차: 거사 (12.4)":
+            st.error("🔥 **1일차: 우정총국 축하연의 불길**")
+            col1, col2 = st.columns([1, 1.5])
+            with col1:
+                st.image(IMAGE_URLS["Day1"], caption="1일차: 거사의 시작") 
                 
-            if col_b2.button("🅱️ 우리 군대가 지킨다 (가상 선택)"):
-                st.session_state['day1_choice'] = 'B'
-                st.session_state['sim_metrics']['success'] = 50
-                st.session_state['sim_metrics']['public'] = 40
-                st.session_state['sim_metrics']['power'] = 50
-                st.rerun()
-
-            if st.session_state['day1_choice'] == 'A':
-                st.warning("😓 **선택 결과:** 일본군이 궁궐을 지키게 되었습니다. 하지만 백성들은 '왜 남의 나라 군대가 왕을 지키냐'며 수군거립니다. (백성들의 지지 하락)")
-            elif st.session_state['day1_choice'] == 'B':
-                st.success("🤩 **상상 결과:** 우리 군대가 당당히 왕을 지킵니다! 백성들도 '드디어 우리 힘으로!'라며 기뻐합니다. (성공 확률 상승)")
-
-    elif timeline == "2일차: 개혁 (12.5)":
-        st.success("📜 **2일차: 새로운 세상의 약속**")
-        col1, col2 = st.columns([1, 1.5])
-        with col1:
-            st.image(IMAGE_URLS["고종"], caption="개혁안을 발표하는 고종")
-        with col2:
-            st.write("""
-            **[상황]** 새로운 정부가 들어섰습니다. 김옥균은 고종 임금님의 허락을 받아 나라를 바꿀 **'14개조 개혁 정강'**을 발표하려 합니다.
+                # [추가됨] 이미지 더 보기 버튼
+                if st.button("📸 이미지 더 보기 (그날의 현장)", key="btn_more_day1"):
+                    st.session_state['show_more_day1'] = True
+                    st.rerun()
             
-            가장 먼저 백성들에게 **어떤 약속**을 해야 할까요?
-            """)
-            
-            col_b1, col_b2 = st.columns(2)
-            if col_b1.button("🅰️ 정치 제도만 바꾼다 (실제 역사)"):
-                st.session_state['day2_choice'] = 'A'
-                st.session_state['sim_metrics']['success'] = max(0, st.session_state['sim_metrics']['success'] - 10)
-                st.session_state['sim_metrics']['public'] = max(0, st.session_state['sim_metrics']['public'] - 10)
-                st.rerun()
+            with col2:
+                st.write("""
+                **[상황]** 우정총국 개국 축하연에서 불길이 솟아올랐습니다! 혼란을 틈타 김옥균과 급진개화파는 계획대로 민씨 정권을 몰아내고 고종 임금님을 안전한 곳으로 모셨습니다.
                 
-            if col_b2.button("🅱️ 토지 문제를 해결해주겠다 (가상 선택)"):
-                st.session_state['day2_choice'] = 'B'
-                st.session_state['sim_metrics']['success'] = min(100, st.session_state['sim_metrics']['success'] + 30)
-                st.session_state['sim_metrics']['public'] = min(100, st.session_state['sim_metrics']['public'] + 40)
-                st.rerun()
+                이제 궁궐을 지켜야 합니다. **김옥균(당신)은 누구에게 궁궐 수비를 맡기겠습니까?**
+                """)
+                
+                col_b1, col_b2 = st.columns(2)
+                if col_b1.button("🅰️ 일본군에게 부탁한다 (실제 역사)"):
+                    st.session_state['day1_choice'] = 'A'
+                    st.session_state['sim_metrics']['success'] = 30
+                    st.session_state['sim_metrics']['public'] = 10
+                    st.session_state['sim_metrics']['power'] = 10
+                    st.rerun()
+                    
+                if col_b2.button("🅱️ 우리 군대가 지킨다 (가상 선택)"):
+                    st.session_state['day1_choice'] = 'B'
+                    st.session_state['sim_metrics']['success'] = 50
+                    st.session_state['sim_metrics']['public'] = 40
+                    st.session_state['sim_metrics']['power'] = 50
+                    st.rerun()
 
-            if st.session_state['day2_choice'] == 'A':
-                st.warning("😓 **선택 결과:** 신분제를 없앤다는 말은 좋았지만, 당장 먹고살기 힘든 농민들은 '땅 문제는 왜 말이 없냐'며 실망했습니다.")
-            elif st.session_state['day2_choice'] == 'B':
-                st.success("🤩 **상상 결과:** '토지를 나누어 준다'는 소식에 온 나라 백성들이 만세를 부르며 김옥균을 지지합니다!")
+                if st.session_state['day1_choice'] == 'A':
+                    st.warning("😓 **선택 결과:** 일본군이 궁궐을 지키게 되었습니다. 하지만 백성들은 '왜 남의 나라 군대가 왕을 지키냐'며 수군거립니다. (백성들의 지지 하락)")
+                elif st.session_state['day1_choice'] == 'B':
+                    st.success("🤩 **상상 결과:** 우리 군대가 당당히 왕을 지킵니다! 백성들도 '드디어 우리 힘으로!'라며 기뻐합니다. (성공 확률 상승)")
 
-    elif timeline == "3일차: 삼일천하 (12.6)":
-        st.warning("⚔️ **3일차: 최후의 순간**")
-        col1, col2 = st.columns([1, 1.5])
-        with col1:
-            st.image(IMAGE_URLS["청나라"], caption="청나라 군대의 개입")
-        with col2:
-            st.write("""
-            **[상황]** 약 1,500명의 청나라 군대가 몰려왔습니다! 일본군은 불리해지자 슬금슬금 도망갈 준비를 합니다.
-            
-            과연 갑신정변의 운명은 어떻게 될까요? (위 게이지를 확인해보세요)
-            """)
-            
-            final_score = st.session_state['sim_metrics']['success']
-            
-            if final_score >= 80:
-                st.balloons()
-                st.success(f"🎉 **기적 같은 성공!** (성공 확률 {final_score}%)")
-                st.write("백성들의 뜨거운 지지와 우리 군대의 힘으로 청나라 군대를 막아냈습니다! 자주적인 근대 국가가 탄생했습니다.")
-            elif final_score >= 50:
-                st.info(f"🤔 **절반의 성공?** (성공 확률 {final_score}%)")
-                st.write("백성들이 조금은 도와주었지만, 청나라 군대가 너무 강했습니다. 아쉽게 후퇴하지만 희망은 보았습니다.")
-            else:
-                st.error(f"😢 **역사대로 실패...** (성공 확률 {final_score}%)")
-                st.write("일본군은 도망가고, 백성들은 등을 돌렸습니다. 결국 3일 만에 실패로 끝나고 일본으로 망명하게 됩니다.")
+            # [추가된 이미지 뷰어 영역]
+            if st.session_state['show_more_day1']:
+                st.divider()
+                st.subheader("📂 1일차 현장 추가 자료")
+                img_c1, img_c2 = st.columns(2)
+                img_c1.image(EXTRA_IMAGES["Day1"][0], caption="우정총국 축하연 현장 기록화")
+                img_c2.image(EXTRA_IMAGES["Day1"][1], caption="1일차 주요 이동 경로 지도")
+                
+                if st.button("❌ 창닫기", key="close_day1"):
+                    st.session_state['show_more_day1'] = False
+                    st.rerun()
 
-            st.divider()
-            if st.button("다음 단계로 이동 (평가) ➡️", type="primary"):
-                st.session_state['current_page'] = 'tab4'
-                st.rerun()
+        # [2일차]
+        elif timeline == "2일차: 개혁 (12.5)":
+            st.success("📜 **2일차: 새로운 세상의 약속**")
+            col1, col2 = st.columns([1, 1.5])
+            with col1:
+                st.image(IMAGE_URLS["Day2"], caption="2일차: 개혁안 발표")
+                
+                # [추가됨] 이미지 더 보기 버튼
+                if st.button("📸 이미지 더 보기 (개혁안 원문)", key="btn_more_day2"):
+                    st.session_state['show_more_day2'] = True
+                    st.rerun()
+
+            with col2:
+                st.write("""
+                **[상황]** 새로운 정부가 들어섰습니다. 김옥균은 고종 임금님의 허락을 받아 나라를 바꿀 **'14개조 개혁 정강'**을 발표하려 합니다.
+                
+                이 기쁜 소식과 개혁의 내용을 **누구와 공유**하시겠습니까?
+                """)
+                
+                col_b1, col_b2 = st.columns(2)
+                if col_b1.button("🅰️ 급진개화파끼리만 공유한다 (실제 역사)"):
+                    st.session_state['day2_choice'] = 'A'
+                    st.session_state['sim_metrics']['success'] = max(0, st.session_state['sim_metrics']['success'] - 20)
+                    st.session_state['sim_metrics']['public'] = max(0, st.session_state['sim_metrics']['public'] - 20)
+                    st.rerun()
+                    
+                if col_b2.button("🅱️ 백성들에게 내용을 설명한다 (가상 선택)"):
+                    st.session_state['day2_choice'] = 'B'
+                    st.session_state['sim_metrics']['success'] = min(100, st.session_state['sim_metrics']['success'] + 20)
+                    st.session_state['sim_metrics']['public'] = min(100, st.session_state['sim_metrics']['public'] + 30)
+                    st.rerun()
+
+                if st.session_state['day2_choice'] == 'A':
+                    st.warning("😓 **선택 결과:** 백성들은 궁궐 안에서 무슨 일이 일어나는지 전혀 몰랐습니다. '자기들끼리 벼슬 나눠 먹네'라며 오히려 의심하기 시작했습니다.")
+                elif st.session_state['day2_choice'] == 'B':
+                    st.success("🤩 **상상 결과:** 방방곡곡에 방을 붙여 개혁을 알리자, 백성들이 '우리도 사람답게 사는 세상이 온다!'며 환호합니다.")
+
+            # [추가된 이미지 뷰어 영역]
+            if st.session_state['show_more_day2']:
+                st.divider()
+                st.subheader("📂 2일차 추가 자료")
+                img_c1, img_c2 = st.columns(2)
+                img_c1.image(EXTRA_IMAGES["Day2"][0], caption="개혁 정강 발표 모습")
+                img_c2.image(EXTRA_IMAGES["Day2"][1], caption="2일차 주요 거점 지도")
+                
+                if st.button("❌ 창닫기", key="close_day2"):
+                    st.session_state['show_more_day2'] = False
+                    st.rerun()
+
+        # [3일차]
+        elif timeline == "3일차: 삼일천하 (12.6)":
+            st.warning("⚔️ **3일차: 최후의 순간**")
+            col1, col2 = st.columns([1, 1.5])
+            with col1:
+                st.image(IMAGE_URLS["Day3"], caption="3일차: 청나라의 개입")
+                
+                # [추가됨] 이미지 더 보기 버튼
+                if st.button("📸 이미지 더 보기 (전투 상황)", key="btn_more_day3"):
+                    st.session_state['show_more_day3'] = True
+                    st.rerun()
+
+            with col2:
+                st.write("""
+                **[상황]** 약 1,500명의 청나라 군대가 몰려왔습니다! 우리가 믿었던 일본군은 불리해지자 슬금슬금 도망갈 준비를 합니다.
+                절체절명의 위기 순간, 김옥균(당신)은 **어떤 결단**을 내리겠습니까?
+                """)
+                
+                col_b1, col_b2 = st.columns(2)
+                if col_b1.button("🅰️ 일본으로 도망친다 (실제 역사)"):
+                    st.session_state['day3_choice'] = 'A'
+                    st.session_state['sim_metrics']['success'] = 0
+                    st.rerun()
+                    
+                if col_b2.button("🅱️ 백성들과 함께 끝까지 싸운다 (가상 선택)"):
+                    st.session_state['day3_choice'] = 'B'
+                    st.session_state['sim_metrics']['success'] = min(100, st.session_state['sim_metrics']['success'] + 10)
+                    st.rerun()
+
+                if st.session_state['day3_choice'] is not None:
+                    final_score = st.session_state['sim_metrics']['success']
+                    
+                    st.divider()
+                    st.markdown("### 🏁 시뮬레이션 결과")
+                    
+                    if st.session_state['day3_choice'] == 'A':
+                        st.error(f"😢 **역사대로 실패...** (성공 확률 {final_score}%)")
+                        st.write("일본 배를 타고 망명길에 올랐습니다. 갑신정변은 3일 만에 실패로 끝나고 말았습니다.")
+                    else:
+                        if final_score >= 70:
+                            st.balloons() 
+                            st.success(f"🎉 **기적 같은 성공!** (성공 확률 {final_score}%)")
+                            st.write("백성들이 몽둥이와 낫을 들고 나와 청나라 군대를 막아섰습니다! '우리 개혁을 지키자!'는 함성에 청나라 군대도 물러갑니다.")
+                        else:
+                            st.info(f"😭 **장렬한 최후...** (성공 확률 {final_score}%)")
+                            st.write("백성들과 함께 끝까지 싸웠지만, 청나라 군대가 너무 강했습니다. 하지만 당신의 용기는 후세에 길이 남을 것입니다.")
+
+                    st.divider()
+                    if st.button("다음 단계로 이동 (평가) ➡️", type="primary"):
+                        st.session_state['current_page'] = 'tab4'
+                        st.rerun()
+
+            # [추가된 이미지 뷰어 영역]
+            if st.session_state['show_more_day3']:
+                st.divider()
+                st.subheader("📂 3일차 추가 자료")
+                img_c1, img_c2 = st.columns(2)
+                img_c1.image(EXTRA_IMAGES["Day3"][0], caption="청나라 군대와의 전투")
+                img_c2.image(EXTRA_IMAGES["Day3"][1], caption="3일차 최종 대치 지도")
+                
+                if st.button("❌ 창닫기", key="close_day3"):
+                    st.session_state['show_more_day3'] = False
+                    st.rerun()
 
 # --------------------------------------------------------------------------
-# [페이지 4] 탭 4: 역사적 상상력 (평가)
+# [페이지 4] 탭 4: 평가
 # --------------------------------------------------------------------------
 def render_tab4():
     st.title("📝 4단계: 나의 역사적 상상력 펼치기")
